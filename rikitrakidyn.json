@@ -1,0 +1,61 @@
+{
+  "TableName": "rikitrakidyn",
+  "BillingMode": "PAY_PER_REQUEST",
+  "AttributeDefinitions": [
+    { "AttributeName": "PK", "AttributeType": "S" },
+    { "AttributeName": "SK", "AttributeType": "S" },
+    { "AttributeName": "username", "AttributeType": "S" },
+    { "AttributeName": "createdDate", "AttributeType": "S" },
+    { "AttributeName": "trackType", "AttributeType": "S" },
+    { "AttributeName": "trackLevel", "AttributeType": "S" },
+    { "AttributeName": "trackRegionTag", "AttributeType": "S" },
+    { "AttributeName": "trackGeoHash", "AttributeType": "S" },
+    { "AttributeName": "geoIndexPK", "AttributeType": "S" }
+  ],
+  "KeySchema": [
+    { "AttributeName": "PK", "KeyType": "HASH" },
+    { "AttributeName": "SK", "KeyType": "RANGE" }
+  ],
+  "GlobalSecondaryIndexes": [
+    {
+      "IndexName": "GSI_UserTracks",
+      "KeySchema": [
+        { "AttributeName": "username", "KeyType": "HASH" },
+        { "AttributeName": "createdDate", "KeyType": "RANGE" }
+      ],
+      "Projection": { "ProjectionType": "ALL" }
+    },
+    {
+      "IndexName": "GSI_TrackType",
+      "KeySchema": [
+        { "AttributeName": "trackType", "KeyType": "HASH" },
+        { "AttributeName": "createdDate", "KeyType": "RANGE" }
+      ],
+      "Projection": { "ProjectionType": "ALL" }
+    },
+    {
+      "IndexName": "GSI_TrackLevel",
+      "KeySchema": [
+        { "AttributeName": "trackLevel", "KeyType": "HASH" },
+        { "AttributeName": "createdDate", "KeyType": "RANGE" }
+      ],
+      "Projection": { "ProjectionType": "ALL" }
+    },
+    {
+      "IndexName": "GSI_TrackRegion",
+      "KeySchema": [
+        { "AttributeName": "trackRegionTag", "KeyType": "HASH" },
+        { "AttributeName": "createdDate", "KeyType": "RANGE" }
+      ],
+      "Projection": { "ProjectionType": "ALL" }
+    },
+    {
+      "IndexName": "GSI_GeoHash",
+      "KeySchema": [
+        { "AttributeName": "geoIndexPK", "KeyType": "HASH" },
+        { "AttributeName": "trackGeoHash", "KeyType": "RANGE" }
+      ],
+      "Projection": { "ProjectionType": "ALL" }
+    }
+  ]
+}
