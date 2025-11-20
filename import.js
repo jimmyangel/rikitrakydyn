@@ -186,7 +186,7 @@ async function importNDJSON(filePath, mapper, limit = 0) {
   }
 
   if (batch.length) {
-    //await batchInsert(batch);
+    await batchInsert(batch);
   }
 
   console.log(`Finished importing from ${filePath}. Total docs processed: ${count}`);
