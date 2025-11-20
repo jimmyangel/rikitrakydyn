@@ -4,13 +4,13 @@
   "AttributeDefinitions": [
     { "AttributeName": "PK", "AttributeType": "S" },
     { "AttributeName": "SK", "AttributeType": "S" },
+    { "AttributeName": "tracksIndexPK", "AttributeType": "S" },
     { "AttributeName": "username", "AttributeType": "S" },
     { "AttributeName": "createdDate", "AttributeType": "S" },
     { "AttributeName": "trackType", "AttributeType": "S" },
     { "AttributeName": "trackLevel", "AttributeType": "S" },
     { "AttributeName": "trackRegionTag", "AttributeType": "S" },
-    { "AttributeName": "trackGeoHash", "AttributeType": "S" },
-    { "AttributeName": "geoIndexPK", "AttributeType": "S" }
+    { "AttributeName": "trackGeoHash", "AttributeType": "S" }
   ],
   "KeySchema": [
     { "AttributeName": "PK", "KeyType": "HASH" },
@@ -18,7 +18,15 @@
   ],
   "GlobalSecondaryIndexes": [
     {
-      "IndexName": "GSI_UserTracks",
+      "IndexName": "TracksByDate",
+      "KeySchema": [
+        { "AttributeName": "tracksIndexPK", "KeyType": "HASH" },
+        { "AttributeName": "createdDate", "KeyType": "RANGE" }
+      ],
+      "Projection": { "ProjectionType": "ALL" }
+    },
+    {
+      "IndexName": "TracksByUser",
       "KeySchema": [
         { "AttributeName": "username", "KeyType": "HASH" },
         { "AttributeName": "createdDate", "KeyType": "RANGE" }
@@ -26,7 +34,7 @@
       "Projection": { "ProjectionType": "ALL" }
     },
     {
-      "IndexName": "GSI_TrackType",
+      "IndexName": "TracksByType",
       "KeySchema": [
         { "AttributeName": "trackType", "KeyType": "HASH" },
         { "AttributeName": "createdDate", "KeyType": "RANGE" }
@@ -34,7 +42,7 @@
       "Projection": { "ProjectionType": "ALL" }
     },
     {
-      "IndexName": "GSI_TrackLevel",
+      "IndexName": "TracksByLevel",
       "KeySchema": [
         { "AttributeName": "trackLevel", "KeyType": "HASH" },
         { "AttributeName": "createdDate", "KeyType": "RANGE" }
@@ -42,7 +50,7 @@
       "Projection": { "ProjectionType": "ALL" }
     },
     {
-      "IndexName": "GSI_TrackRegion",
+      "IndexName": "TracksByRegion",
       "KeySchema": [
         { "AttributeName": "trackRegionTag", "KeyType": "HASH" },
         { "AttributeName": "createdDate", "KeyType": "RANGE" }
@@ -50,9 +58,9 @@
       "Projection": { "ProjectionType": "ALL" }
     },
     {
-      "IndexName": "GSI_GeoHash",
+      "IndexName": "TracksByGeoHash",
       "KeySchema": [
-        { "AttributeName": "geoIndexPK", "KeyType": "HASH" },
+        { "AttributeName": "tracksIndexPK", "KeyType": "HASH" },
         { "AttributeName": "trackGeoHash", "KeyType": "RANGE" }
       ],
       "Projection": { "ProjectionType": "ALL" }

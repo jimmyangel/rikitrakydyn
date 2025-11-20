@@ -1,11 +1,11 @@
 {
-  "name": "dynamodb-import",
+  "name": "rikitrakidyn",
   "version": "0.1.0",
   "description": "NDJSON line-by-line import for tracks and users into DynamoDB",
   "main": "import.js",
   "type": "module",
   "scripts": {
-    "start": "node import.js",
+    "import": "node import.js",
     "clear": "node clearTable.js",
     "uploadgpx": "node uploadGPXBlobs.js",
     "uploadpics": "node uploadPicBlobs.js",

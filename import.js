@@ -85,6 +85,8 @@ if (Array.isArray(doc.trackRegionTags)) {
     trackGeoHash = geohash.encode(Number(lat), Number(lng), 8); // precision 8
   }
 
+  let trackType = doc.trackType ? doc.trackType : "Hiking"
+
   const trackItem = {
     PK: { S: `TRACK#${doc.trackId}` },
     SK: { S: "METADATA" },
@@ -92,11 +94,16 @@ if (Array.isArray(doc.trackRegionTags)) {
     trackName: { S: doc.trackName },
     username: { S: doc.username },
     isDeleted: { BOOL: false },
-    geoIndexPK: { S: "TRACKS"}
+    trackLevel: { S: doc.trackLevel },
+    trackType: { S: trackType },
+    trackFav: {  BOOL: doc.trackFav },
+    trackDescription: { S: doc.trackDescription},
+    hasPhotos: { BOOL: doc.hasPhotos },
+    trackGPX: { S: doc.trackGPX },
+    tracksIndexPK: { S: "TRACKS" },
+    createdDate: { S: createdDate }
   };
 
-  if (createdDate) trackItem.createdDate = { S: createdDate };
-  if (doc.trackGPX) trackItem.trackGPX = { S: doc.trackGPX };
   if (lat && lng) {
     trackItem.trackLatLng = {
       M: {
@@ -106,7 +113,10 @@ if (Array.isArray(doc.trackRegionTags)) {
     };
   }
 
+  if (doc.lastUpdatedDate) trackItem.lastUpdatedDate = { S: isoDate(doc.lastUpdatedDate) };
   if (trackGeoHash) trackItem.trackGeoHash = { S: trackGeoHash };
+
+  // console.log(trackItem);
 
   items.push({ PutRequest: { Item: trackItem } });
 
