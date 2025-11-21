@@ -30,19 +30,19 @@ function mapTrack(doc) {
   const createdDate = isoDate(doc.createdDate);
 
   // Region tags
-if (Array.isArray(doc.trackRegionTags)) {
-  doc.trackRegionTags.forEach((tag, idx) => {
-    const regionItem = {
-      PK: { S: `TRACK#${doc.trackId}` },
-      SK: { S: `REGION#${idx}#${tag}` },   // include index
-      trackId: { S: doc.trackId },
-      trackRegionTag: { S: tag },
-      regionIndex: { N: String(idx) }      // store index explicitly
-    };
-    if (createdDate) regionItem.createdDate = { S: createdDate };
-    items.push({ PutRequest: { Item: regionItem } });
-  });
-}
+  if (Array.isArray(doc.trackRegionTags)) {
+    doc.trackRegionTags.forEach((tag, idx) => {
+      const regionItem = {
+        PK: { S: `TRACK#${doc.trackId}` },
+        SK: { S: `REGION#${idx}#${tag}` },   // include index
+        trackId: { S: doc.trackId },
+        trackRegionTag: { S: tag },
+        regionIndex: { N: String(idx) }      // store index explicitly
+      };
+      if (createdDate) regionItem.createdDate = { S: createdDate };
+      items.push({ PutRequest: { Item: regionItem } });
+    });
+  }
 
   // Photos
   if (Array.isArray(doc.trackPhotos)) {
@@ -59,22 +59,21 @@ if (Array.isArray(doc.trackRegionTags)) {
 
       if (p.createdDate) photoItem.createdDate = { S: isoDate(p.createdDate) };
 
-    if (Array.isArray(p.picLatLng)) {
-        const plat = num(p.picLatLng[0]);
-        const plng = num(p.picLatLng[1]);
-        if (plat && plng) {
-          photoItem.picLatLng = {
-            M: {
-              lat: { N: plat },
-              lng: { N: plng }
-            }
-          };
-        }
-      } 
-
-      items.push({ PutRequest: { Item: photoItem } });
-    });
-  }
+      if (Array.isArray(p.picLatLng)) {
+          const plat = num(p.picLatLng[0]);
+          const plng = num(p.picLatLng[1]);
+          if (plat && plng) {
+            photoItem.picLatLng = {
+              M: {
+                lat: { N: plat },
+                lng: { N: plng }
+              }
+            };
+          }
+        } 
+        items.push({ PutRequest: { Item: photoItem } });
+      });
+    }
 
   // Metadata last
   const lat = Array.isArray(doc.trackLatLng) ? num(doc.trackLatLng[0]) : undefined;
@@ -111,12 +110,7 @@ if (Array.isArray(doc.trackRegionTags)) {
   }
 
   if (lat && lng) {
-    trackItem.trackLatLng = {
-      M: {
-        lat: { N: lat },
-        lng: { N: lng }
-      }
-    };
+    trackItem.trackLatLng = {L: [{ N: lat }, { N: lng }] }
   }
 
   if (doc.lastUpdatedDate) trackItem.lastUpdatedDate = { S: isoDate(doc.lastUpdatedDate) };
