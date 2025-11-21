@@ -104,6 +104,12 @@ if (Array.isArray(doc.trackRegionTags)) {
     createdDate: { S: createdDate }
   };
 
+  if (Array.isArray(doc.trackRegionTags)) {
+    trackItem.trackRegionTags = {
+      L: doc.trackRegionTags.map(tag => ({ S: tag }))
+    }
+  }
+
   if (lat && lng) {
     trackItem.trackLatLng = {
       M: {
