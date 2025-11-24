@@ -29,17 +29,39 @@ function mapTrack(doc) {
   const items = [];
   const createdDate = isoDate(doc.createdDate);
 
+  const lat = Array.isArray(doc.trackLatLng) ? num(doc.trackLatLng[0]) : undefined;
+  const lng = Array.isArray(doc.trackLatLng) ? num(doc.trackLatLng[1]) : undefined;
+
+  let trackType = doc.trackType ? doc.trackType : "Hiking"
+
   // Region tags
   if (Array.isArray(doc.trackRegionTags)) {
     doc.trackRegionTags.forEach((tag, idx) => {
       const regionItem = {
         PK: { S: `TRACK#${doc.trackId}` },
-        SK: { S: `REGION#${idx}#${tag}` },   // include index
+        SK: { S: `REGION#${idx}#${tag}` },
         trackId: { S: doc.trackId },
         trackRegionTag: { S: tag },
-        regionIndex: { N: String(idx) }      // store index explicitly
-      };
+        regionIndex: { N: String(idx) },
+        trackName: { S: doc.trackName },
+        trackType: { S: trackType },
+        trackLevel: { S: doc.trackLevel },
+        username: { S: doc.username },
+        trackFav: {  BOOL: doc.trackFav },
+        isDeleted: { BOOL: false }
+      }
+      regionItem.trackRegionTags = {
+        L: doc.trackRegionTags.map(tag => ({ S: tag }))
+      }
+
+      if (lat && lng) {
+        regionItem.trackLatLng = {L: [{ N: lat }, { N: lng }] }
+      }
+
       if (createdDate) regionItem.createdDate = { S: createdDate };
+
+      //console.log(regionItem)
+
       items.push({ PutRequest: { Item: regionItem } });
     });
   }
@@ -76,15 +98,11 @@ function mapTrack(doc) {
     }
 
   // Metadata last
-  const lat = Array.isArray(doc.trackLatLng) ? num(doc.trackLatLng[0]) : undefined;
-  const lng = Array.isArray(doc.trackLatLng) ? num(doc.trackLatLng[1]) : undefined;
 
   let trackGeoHash;
   if (lat && lng) {
     trackGeoHash = geohash.encode(Number(lat), Number(lng), 8); // precision 8
   }
-
-  let trackType = doc.trackType ? doc.trackType : "Hiking"
 
   const trackItem = {
     PK: { S: `TRACK#${doc.trackId}` },
