@@ -79,18 +79,14 @@ function mapTrack(doc) {
         picCaption: { S: p.picCaption }
       };
 
+      if (Object.hasOwn(p, 'picIndex')) {photoItem.picIndex = { N:  String(p.picIndex) };}
       if (p.createdDate) photoItem.createdDate = { S: isoDate(p.createdDate) };
 
       if (Array.isArray(p.picLatLng)) {
           const plat = num(p.picLatLng[0]);
           const plng = num(p.picLatLng[1]);
           if (plat && plng) {
-            photoItem.picLatLng = {
-              M: {
-                lat: { N: plat },
-                lng: { N: plng }
-              }
-            };
+            photoItem.picLatLng = {L: [{ N: plat }, { N: plng }] }
           }
         } 
         items.push({ PutRequest: { Item: photoItem } });
