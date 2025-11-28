@@ -139,6 +139,8 @@ function mapTrack(doc) {
 
 // Map a user document → DynamoDB item
 function mapUser(doc) {
+  const items = []
+
   const userItem = {
     PK: { S: `USER#${doc.username}` },
     SK: { S: "METADATA" },
@@ -155,7 +157,17 @@ function mapUser(doc) {
   const lastUpdatedDate = isoDate(doc.lastUpdatedDate)
   if (lastUpdatedDate) userItem.lastUpdatedDate = { S: createdDate }
 
-  return { PutRequest: { Item: userItem } }
+  items.push({ PutRequest: { Item: userItem}})
+
+  const emailItem = {
+    PK: { S: `EMAIL#${doc.email}` },
+    SK: { S: "EMAIL" },
+    username: { S: doc.username }
+  }
+
+  items.push({ PutRequest: { Item: emailItem}})
+
+  return items
 }
 
 // Batch insert helper with PK/SK logging
