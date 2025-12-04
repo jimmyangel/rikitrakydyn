@@ -100,6 +100,8 @@ function mapTrack(doc) {
     trackGeoHash = geohash.encode(Number(lat), Number(lng), 8); // precision 8
   }
 
+  let tracksIndexUserPK = `TRACK#${doc.username}`
+
   const trackItem = {
     PK: { S: `TRACK#${doc.trackId}` },
     SK: { S: "METADATA" },
@@ -114,6 +116,7 @@ function mapTrack(doc) {
     hasPhotos: { BOOL: doc.hasPhotos },
     trackGPX: { S: doc.trackGPX },
     tracksIndexPK: { S: "TRACKS" },
+    tracksIndexUserPK: { S: tracksIndexUserPK},
     createdDate: { S: createdDate }
   }
 
@@ -228,9 +231,9 @@ async function importNDJSON(filePath, mapper, limit = 0) {
 
 // Run
 (async () => {
-  //await importNDJSON("./exports/tracks.json", mapTrack)
-  //console.log("Tracks import completed.")
+  await importNDJSON("./exports/tracks.json", mapTrack)
+  console.log("Tracks import completed.")
 
-  await importNDJSON("./exports/users.json", mapUser)
-  console.log("Users import completed.")
+  //await importNDJSON("./exports/users.json", mapUser)
+  //console.log("Users import completed.")
 })()
