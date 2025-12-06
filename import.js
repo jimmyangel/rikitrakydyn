@@ -100,7 +100,7 @@ function mapTrack(doc) {
     trackGeoHash = geohash.encode(Number(lat), Number(lng), 8); // precision 8
   }
 
-  let tracksIndexUserPK = `TRACK#${doc.username}`
+  let tracksIndexUserPK = `TRACKS#${doc.username}`
 
   const trackItem = {
     PK: { S: `TRACK#${doc.trackId}` },

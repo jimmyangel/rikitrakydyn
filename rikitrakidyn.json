@@ -11,7 +11,7 @@
     { "AttributeName": "trackLevel", "AttributeType": "S" },
     { "AttributeName": "trackRegionTag", "AttributeType": "S" },
     { "AttributeName": "trackGeoHash", "AttributeType": "S" },
-    { "AttributeName": "trackIndexUserPK", "AttributeType": "S" }
+    { "AttributeName": "tracksIndexUserPK", "AttributeType": "S" }
   ],
   "KeySchema": [
     { "AttributeName": "PK", "KeyType": "HASH" },
@@ -29,7 +29,7 @@
     {
       "IndexName": "TracksByUser",
       "KeySchema": [
-        { "AttributeName": "trackIndexUserPK", "KeyType": "HASH" },
+        { "AttributeName": "tracksIndexUserPK", "KeyType": "HASH" },
         { "AttributeName": "createdDate", "KeyType": "RANGE" }
       ],
       "Projection": { "ProjectionType": "ALL" }
