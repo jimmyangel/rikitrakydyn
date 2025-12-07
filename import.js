@@ -9,8 +9,8 @@ const TABLE_NAME = "rikitrakidyn"
 // Helper to safely unwrap MongoDB extended JSON dates
 function isoDate(val) {
   if (!val) return undefined
-  if (typeof val === "string") return val;         // already ISO
-  if (val.$date) return val.$date;                 // extended JSON
+  if (typeof val === "string") return val // already ISO
+  if (val.$date) return val.$date // extended JSON
   return undefined
 }
 
@@ -34,7 +34,7 @@ function mapTrack(doc) {
 
   let trackType = doc.trackType ? doc.trackType : "Hiking"
 
-  // Region tags
+  // Region tags (still separate items for search/indexing)
   if (Array.isArray(doc.trackRegionTags)) {
     doc.trackRegionTags.forEach((tag, idx) => {
       const regionItem = {
@@ -47,7 +47,7 @@ function mapTrack(doc) {
         trackType: { S: trackType },
         trackLevel: { S: doc.trackLevel },
         username: { S: doc.username },
-        trackFav: {  BOOL: doc.trackFav },
+        trackFav: { BOOL: doc.trackFav },
         isDeleted: { BOOL: false }
       }
       regionItem.trackRegionTags = {
@@ -55,49 +55,19 @@ function mapTrack(doc) {
       }
 
       if (lat && lng) {
-        regionItem.trackLatLng = {L: [{ N: lat }, { N: lng }] }
+        regionItem.trackLatLng = { L: [{ N: lat }, { N: lng }] }
       }
 
       if (createdDate) regionItem.createdDate = { S: createdDate }
-
-      //console.log(regionItem)
 
       items.push({ PutRequest: { Item: regionItem } })
     })
   }
 
-  // Photos
-  if (Array.isArray(doc.trackPhotos)) {
-    doc.trackPhotos.forEach((p, idx) => {
-      const photoItem = {
-        PK: { S: `TRACK#${doc.trackId}` },
-        SK: { S: `PHOTO#${idx}` },
-        trackId: { S: doc.trackId },
-        photoIndex: { N: String(idx) },
-        picName: { S: p.picName },
-        picThumb: {S: p.picThumb},
-        picCaption: { S: p.picCaption }
-      }
-
-      if (Object.hasOwn(p, 'picIndex')) {photoItem.picIndex = { N:  String(p.picIndex) };}
-      if (p.createdDate) photoItem.createdDate = { S: isoDate(p.createdDate) }
-
-      if (Array.isArray(p.picLatLng)) {
-          const plat = num(p.picLatLng[0])
-          const plng = num(p.picLatLng[1])
-          if (plat && plng) {
-            photoItem.picLatLng = {L: [{ N: plat }, { N: plng }] }
-          }
-        } 
-        items.push({ PutRequest: { Item: photoItem } })
-      })
-    }
-
-  // Metadata last
-
+  // Metadata (with embedded trackPhotos array)
   let trackGeoHash
   if (lat && lng) {
-    trackGeoHash = geohash.encode(Number(lat), Number(lng), 8); // precision 8
+    trackGeoHash = geohash.encode(Number(lat), Number(lng), 8) // precision 8
   }
 
   let tracksIndexUserPK = `TRACKS#${doc.username}`
@@ -111,12 +81,12 @@ function mapTrack(doc) {
     isDeleted: { BOOL: false },
     trackLevel: { S: doc.trackLevel },
     trackType: { S: trackType },
-    trackFav: {  BOOL: doc.trackFav },
-    trackDescription: { S: doc.trackDescription},
+    trackFav: { BOOL: doc.trackFav },
+    trackDescription: { S: doc.trackDescription },
     hasPhotos: { BOOL: doc.hasPhotos },
     trackGPX: { S: doc.trackGPX },
     tracksIndexPK: { S: "TRACKS" },
-    tracksIndexUserPK: { S: tracksIndexUserPK},
+    tracksIndexUserPK: { S: tracksIndexUserPK },
     createdDate: { S: createdDate }
   }
 
@@ -127,13 +97,40 @@ function mapTrack(doc) {
   }
 
   if (lat && lng) {
-    trackItem.trackLatLng = {L: [{ N: lat }, { N: lng }] }
+    trackItem.trackLatLng = { L: [{ N: lat }, { N: lng }] }
   }
 
   if (doc.lastUpdatedDate) trackItem.lastUpdatedDate = { S: isoDate(doc.lastUpdatedDate) }
   if (trackGeoHash) trackItem.trackGeoHash = { S: trackGeoHash }
 
-  // console.log(trackItem)
+  // Embed trackPhotos array if present
+  if (Array.isArray(doc.trackPhotos)) {
+    trackItem.trackPhotos = {
+      L: doc.trackPhotos.map(p => {
+        const photoMap = {
+          M: {
+            picName: { S: p.picName },
+            picThumb: { S: p.picThumb },
+            picCaption: { S: p.picCaption }
+          }
+        }
+        if (Object.hasOwn(p, "picIndex")) {
+          photoMap.M.picIndex = { N: String(p.picIndex) }
+        }
+        if (p.createdDate) {
+          photoMap.M.createdDate = { S: isoDate(p.createdDate) }
+        }
+        if (Array.isArray(p.picLatLng)) {
+          const plat = num(p.picLatLng[0])
+          const plng = num(p.picLatLng[1])
+          if (plat && plng) {
+            photoMap.M.picLatLng = { L: [{ N: plat }, { N: plng }] }
+          }
+        }
+        return photoMap
+      })
+    }
+  }
 
   items.push({ PutRequest: { Item: trackItem } })
 
@@ -160,7 +157,7 @@ function mapUser(doc) {
   const lastUpdatedDate = isoDate(doc.lastUpdatedDate)
   if (lastUpdatedDate) userItem.lastUpdatedDate = { S: createdDate }
 
-  items.push({ PutRequest: { Item: userItem}})
+  items.push({ PutRequest: { Item: userItem }})
 
   const emailItem = {
     PK: { S: `EMAIL#${doc.email}` },
@@ -168,25 +165,17 @@ function mapUser(doc) {
     username: { S: doc.username }
   }
 
-  items.push({ PutRequest: { Item: emailItem}})
+  items.push({ PutRequest: { Item: emailItem }})
 
   return items
 }
 
-// Batch insert helper with PK/SK logging
+// Batch insert helper
 async function batchInsert(batch) {
   if (!batch.length) return
-
-  // Log PK/SK for debugging
-  /*batch.forEach(req => {
-    const item = req.PutRequest.Item
-    console.log("PK:", item.PK.S, "SK:", item.SK.S)
-  }); */
-
   const result = await client.send(new BatchWriteItemCommand({
     RequestItems: { [TABLE_NAME]: batch }
   }))
-
   const unprocessed = result.UnprocessedItems?.[TABLE_NAME] || []
   if (unprocessed.length) {
     console.log("Retrying unprocessed items...")
@@ -194,7 +183,7 @@ async function batchInsert(batch) {
   }
 }
 
-// Stream NDJSON file line by line with optional limit
+// Stream NDJSON file line by line
 async function importNDJSON(filePath, mapper, limit = 0) {
   const rl = readline.createInterface({
     input: fs.createReadStream(filePath),
@@ -230,10 +219,10 @@ async function importNDJSON(filePath, mapper, limit = 0) {
 }
 
 // Run
-(async () => {
+;(async () => {
   await importNDJSON("./exports/tracks.json", mapTrack)
   console.log("Tracks import completed.")
 
-  //await importNDJSON("./exports/users.json", mapUser)
-  //console.log("Users import completed.")
+  // await importNDJSON("./exports/users.json", mapUser)
+  // console.log("Users import completed.")
 })()
