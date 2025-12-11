@@ -218,11 +218,41 @@ async function importNDJSON(filePath, mapper, limit = 0) {
   console.log(`Finished importing from ${filePath}. Total docs processed: ${count}`)
 }
 
-// Run
-;(async () => {
-  await importNDJSON("./exports/tracks.json", mapTrack)
-  console.log("Tracks import completed.")
+const imports = {
+  tracks: { file: './exports/tracks.json', mapper: mapTrack, label: 'Tracks' },
+  users:  { file: './exports/users.json',  mapper: mapUser,  label: 'Users' }
+}
 
-  // await importNDJSON("./exports/users.json", mapUser)
-  // console.log("Users import completed.")
+async function askChoice() {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+  return new Promise(resolve => {
+    rl.question('What do you want to import? (tracks/users/both/none): ', answer => {
+      rl.close()
+      resolve(answer.trim().toLowerCase() || 'none')
+    })
+  })
+}
+
+;(async () => {
+  let choice = process.argv[2]?.toLowerCase()
+  if (!choice) choice = await askChoice()
+
+  const toRun =
+    choice === 'both' ? Object.keys(imports)
+    : choice === 'none' ? []
+    : [choice]
+
+  for (const key of toRun) {
+    const { file, mapper, label } = imports[key] || {}
+    if (!file) {
+      console.error(`Invalid choice: ${choice}`)
+      process.exit(1)
+    }
+    await importNDJSON(file, mapper)
+    console.log(`${label} import completed.`)
+  }
+
+  if (toRun.length === 0) {
+    console.log('No imports selected.')
+  }
 })()
