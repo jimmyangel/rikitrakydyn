@@ -6,15 +6,50 @@ import geohash from "ngeohash"
 const client = new DynamoDBClient({ region: "us-west-2" })
 const TABLE_NAME = "rikitrakidyn"
 
-// Helper to safely unwrap MongoDB extended JSON dates
+// -----------------------------
+// Load confirmed exclusions
+// -----------------------------
+function loadExclusions() {
+  let excludedTrackIds = new Set()
+  let excludedUsernames = new Set()
+
+  const tracksFile = './exports/flagged_tracks_confirmed.json'
+  if (fs.existsSync(tracksFile)) {
+    try {
+      const arr = JSON.parse(fs.readFileSync(tracksFile, 'utf8'))
+      arr.forEach(t => excludedTrackIds.add(t.trackId))
+      console.log(`Loaded ${excludedTrackIds.size} excluded tracks`)
+    } catch (err) {
+      console.error('Failed to read flagged_tracks_confirmed.json', err)
+    }
+  }
+
+  const usersFile = './exports/flagged_users_confirmed.json'
+  if (fs.existsSync(usersFile)) {
+    try {
+      const arr = JSON.parse(fs.readFileSync(usersFile, 'utf8'))
+      arr.forEach(u => excludedUsernames.add(u.username))
+      console.log(`Loaded ${excludedUsernames.size} excluded users`)
+    } catch (err) {
+      console.error('Failed to read flagged_users_confirmed.json', err)
+    }
+  }
+
+  return { excludedTrackIds, excludedUsernames }
+}
+
+const { excludedTrackIds, excludedUsernames } = loadExclusions()
+
+// -----------------------------
+// Helpers
+// -----------------------------
 function isoDate(val) {
   if (!val) return undefined
-  if (typeof val === "string") return val // already ISO
-  if (val.$date) return val.$date // extended JSON
+  if (typeof val === "string") return val
+  if (val.$date) return val.$date
   return undefined
 }
 
-// Normalize MongoDB extended JSON numbers into DynamoDB N attributes
 function num(val) {
   if (val === undefined || val === null) return undefined
   if (typeof val === "number") return String(val)
@@ -24,7 +59,9 @@ function num(val) {
   return undefined
 }
 
-// Map a track document → DynamoDB items
+// -----------------------------
+// Track mapper
+// -----------------------------
 function mapTrack(doc) {
   const items = []
   const createdDate = isoDate(doc.createdDate)
@@ -34,7 +71,6 @@ function mapTrack(doc) {
 
   let trackType = doc.trackType ? doc.trackType : "Hiking"
 
-  // Region tags (still separate items for search/indexing)
   if (Array.isArray(doc.trackRegionTags)) {
     doc.trackRegionTags.forEach((tag, idx) => {
       const regionItem = {
@@ -64,10 +100,9 @@ function mapTrack(doc) {
     })
   }
 
-  // Metadata (with embedded trackPhotos array)
   let trackGeoHash
   if (lat && lng) {
-    trackGeoHash = geohash.encode(Number(lat), Number(lng), 8) // precision 8
+    trackGeoHash = geohash.encode(Number(lat), Number(lng), 8)
   }
 
   let tracksIndexUserPK = `TRACKS#${doc.username}`
@@ -103,7 +138,6 @@ function mapTrack(doc) {
   if (doc.lastUpdatedDate) trackItem.lastUpdatedDate = { S: isoDate(doc.lastUpdatedDate) }
   if (trackGeoHash) trackItem.trackGeoHash = { S: trackGeoHash }
 
-  // Embed trackPhotos array if present
   if (Array.isArray(doc.trackPhotos)) {
     trackItem.trackPhotos = {
       L: doc.trackPhotos.map(p => {
@@ -137,7 +171,9 @@ function mapTrack(doc) {
   return items
 }
 
-// Map a user document → DynamoDB item
+// -----------------------------
+// User mapper
+// -----------------------------
 function mapUser(doc) {
   const items = []
 
@@ -170,7 +206,9 @@ function mapUser(doc) {
   return items
 }
 
-// Batch insert helper
+// -----------------------------
+// Batch insert
+// -----------------------------
 async function batchInsert(batch) {
   if (!batch.length) return
   const result = await client.send(new BatchWriteItemCommand({
@@ -183,7 +221,9 @@ async function batchInsert(batch) {
   }
 }
 
-// Stream NDJSON file line by line
+// -----------------------------
+// NDJSON importer with exclusions
+// -----------------------------
 async function importNDJSON(filePath, mapper, limit = 0) {
   const rl = readline.createInterface({
     input: fs.createReadStream(filePath),
@@ -196,6 +236,17 @@ async function importNDJSON(filePath, mapper, limit = 0) {
   for await (const line of rl) {
     if (!line.trim()) continue
     const doc = JSON.parse(line)
+
+    // --- Exclusion logic ---
+    if (mapper === mapTrack) {
+      if (doc.trackId && excludedTrackIds.has(doc.trackId)) continue
+    }
+
+    if (mapper === mapUser) {
+      if (doc.username && excludedUsernames.has(doc.username)) continue
+    }
+    // ------------------------
+
     const items = Array.isArray(mapper(doc)) ? mapper(doc) : [mapper(doc)]
     batch.push(...items)
 
@@ -218,6 +269,9 @@ async function importNDJSON(filePath, mapper, limit = 0) {
   console.log(`Finished importing from ${filePath}. Total docs processed: ${count}`)
 }
 
+// -----------------------------
+// CLI dispatcher
+// -----------------------------
 const imports = {
   tracks: { file: './exports/tracks.json', mapper: mapTrack, label: 'Tracks' },
   users:  { file: './exports/users.json',  mapper: mapUser,  label: 'Users' }
