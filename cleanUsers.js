@@ -20,9 +20,11 @@ async function buildTrackIndex() {
   return index;
 }
 
+
 async function flagUsers() {
   const trackIndex = await buildTrackIndex();
   const flagged = [];
+  const summary = {};
 
   const rl = readline.createInterface({
     input: fs.createReadStream('./exports/users.json'),
@@ -40,24 +42,19 @@ async function flagUsers() {
     const trackCount = trackIndex.get(uname) || 0;
 
     if (isInactive) {
-      flagged.push({
-        username: uname,
-        email: user.email,
-        createdDate: user.createdDate?.$date,
-        reason: 'inactive'
-      });
+      flagged.push({ username: uname, email: user.email, createdDate: user.createdDate?.$date, reason: 'inactive' });
+      summary['inactive'] = (summary['inactive'] || 0) + 1;
     } else if (createdDate < new Date('2024-01-01') && trackCount === 0) {
-      flagged.push({
-        username: uname,
-        email: user.email,
-        createdDate: user.createdDate?.$date,
-        reason: 'old_zero_tracks'
-      });
+      flagged.push({ username: uname, email: user.email, createdDate: user.createdDate?.$date, reason: 'old_zero_tracks' });
+      summary['old_zero_tracks'] = (summary['old_zero_tracks'] || 0) + 1;
     }
   }
 
   fs.writeFileSync('./exports/flagged_users.json', JSON.stringify(flagged, null, 2));
+
   console.log(`Flagged ${flagged.length} users`);
+  console.log('Summary by reason:');
+  Object.entries(summary).forEach(([reason, count]) => console.log(`- ${reason}: ${count}`));
 }
 
 flagUsers().catch(console.error);

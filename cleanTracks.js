@@ -101,6 +101,7 @@ async function processFile() {
         trackName: doc.trackName,
         trackDescription: doc.trackDescription,
         createdDate: doc.createdDate?.$date,
+        username: doc.username,
         reasons: allReasons
       });
       allReasons.forEach(r => { summary[r] = (summary[r] || 0) + 1; });
@@ -111,7 +112,7 @@ async function processFile() {
     }
   }
 
-  fs.writeFileSync('./exports/flagged.json', JSON.stringify(flagged, null, 2));
+  fs.writeFileSync('./exports/flagged_tracks.json', JSON.stringify(flagged, null, 2));
 
   console.log(`\nFlagged ${flagged.length} suspicious records`);
   console.log('Summary by reason:');
