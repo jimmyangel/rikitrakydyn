@@ -102,6 +102,7 @@ async function processFile() {
         trackDescription: doc.trackDescription,
         createdDate: doc.createdDate?.$date,
         username: doc.username,
+        hasPhotos: doc.hasPhotos,
         reasons: allReasons
       });
       allReasons.forEach(r => { summary[r] = (summary[r] || 0) + 1; });
